@@ -1,0 +1,113 @@
+body {                                            /* nastavenie farby a odsadenia tela dokumentu od vrchu */
+    background: #A5A3A3;
+    padding-top: 60px;
+}
+
+.alert-danger {                                   /* nastavenie inej farebnej kombinacie prvku pre signal LIVE */
+    color: #FFFFFF;
+    background-color: #ff0000;
+    border-color: #000000;
+}
+
+.alert-success {                                  /* nastavenie inej farebnej kombinacie prvku pre signal READY */
+    color: #FFFFFF;
+    background-color: #12C100;
+    border-color: #000000;
+}
+
+.alert-free {                                     /* nastavenie farebnej kombinacie pre nepouzivanie kamery */
+    color: #000000;
+    background-color: #FFFFFF;
+    border-color: #000000;
+}
+
+.thumbnail {                                      /* vycentrovanie textu v kontajnerch v mriezke */
+  text-align: center;
+}
+
+    .thumbnail .cam {                             /* nastavenie farby pozdia */
+      background: #FFFFFF;
+    }
+
+.btn-success {                                    /* nastavenie inej farebnej kombinacie pre tlacidlo SEND */
+  background-color: #42C542;
+  border-color: #42C542;
+}
+
+.label-success {                                  /* nastavenie inej farebnej kombinacie prvku pre signal READY */
+  color: #00CD00;
+  background-color: #FFFFFF;
+  border-color: #000000;
+}
+
+.label-info {                                     /* nastavenie inej farebnej kombinacie prvku pre signaly LIVE + READY */
+  color: #000000;
+  background-color: #00CD00;
+  border-color: #00CD00;
+}
+
+.label-danger {                                   /* nastavenie inej farebnej kombinacie prvku pre signal LIVE */
+  color: #FF0000;
+  background-color: #FFFFFF;
+  border-color: #000000;
+}
+
+.chatCam{                                         /* nastavenie okne pre konverzaciu pre stranku CHAT */
+  height:150px;
+  border:2px solid #ccc;
+  font:16px/26px Georgia, Garamond, Serif;
+  color: #000000;
+  overflow:auto;
+  text-align:left;
+}
+
+.chat{                                            /* nastavenie okne pre konverzaciu pre stranky Kamier */
+  height:350px;
+  border:2px solid #ccc;
+  font:16px/26px Georgia, Garamond, Serif;
+  color: #000000;
+  overflow:auto;
+  text-align:left;
+}
+
+.bot-pad {                                        /* pridanie odsadenia na spodku komponentu */
+    padding-bottom: 20px;
+}
+
+
+.navbar-brand {                                   /* nastavenie odsadenia pre logo stranky */
+    padding: 0px;
+}
+
+    .navbar-brand > img {                         /* nastavenie obrazku ako logo stranky */
+        height: 100%;
+        padding: 15px;
+        width: auto;
+    }
+
+.brand-centered {                                 /* vycentrovanie loga stranky na stred */
+    display: flex;
+    justify-content: center;
+    position: absolute;
+    width: 100%;
+    left: 0;
+    top: 0;
+}
+
+.navbar-toggle {                                  /* nastavenie prekryvania prvkov */
+    z-index: 1;
+}
+
+#messages {                                       /* nastavenie zoznamu sprav pre konverzacne okno */
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+    #messages li {                                /* nastavenie zakladnej vysky spravy v okne */
+        padding: 5px;
+    }
+
+        #messages li:nth-child(odd) {             /* nastavenie farebnej rozlistnosti kazdej neparnej spravy */
+            background: #9DD8D8;
+        }

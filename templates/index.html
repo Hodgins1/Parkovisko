@@ -1,0 +1,140 @@
+<!doctype html>
+<html class="no-js" lang="">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>CSS_2</title>
+    <meta name="description" content="Tally Light System">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">                <!-- Nacitanie CSS suboru pre Bootstrap z lokalneho disku -->
+    <link id="switchStyle" rel="stylesheet" href="{{ url_for('static', filename='css/nightStyle.css') }}">  <!-- Nacitanie vlastnej editacie CSS z lokalneho disku, denna a nocna verzia-->
+
+    <script type="text/javascript">                                             //Skript na zmenu CSS suboru z dennej verzie na nocu
+      function swapStyleSheet(sheet){
+        document.getElementById('switchStyle').setAttribute('href', sheet);     //Zmena cesty CSS suboru pre nacitanie
+    }
+    </script>
+
+</head>
+
+<body>
+
+  <div class="container">
+
+      <div class="row">
+          <div class="col-xs-1 col-md-6" >               <!-- Kontajner pre zobrazovanie stavu kamery 1 -->
+              <div class="thumbnail bot-pad alert-success" id='Teplota_thm'>
+                  <h4> Teplota:   n/a C <br>  <span class="label" id='Teplota'></span> </h4>     <!-- Nazov kamery a jej stitok s textovym oznacenim stavu -->
+              </div>
+          </div>
+          <div class="col-xs-1 col-md-6" >               <!-- Kontajner pre zobrazovanie stavu kamery 1 -->
+              <div class="thumbnail bot-pad alert-success" id='Vlhkost_thm'>
+                  <h4> Vlhkost:   n/a C <br>  <span class="label" id='Vlhkost'></span> </h4>     <!-- Nazov kamery a jej stitok s textovym oznacenim stavu -->
+              </div>
+          </div>
+
+          <div class="col-xs-1 col-md-6">               <!-- Kontajner pre zobrazovanie stavu kamery 2 -->
+              <div class="thumbnail bot-pad alert-danger"  id='Otacky_thm'>
+                  <h2> Otacky:   rpm <br>  <span class="label" id='Otacky'></span></h2>     <!-- Nazov kamery a jej stitok s textovym oznacenim stavu -->
+              </div>
+          </div>
+
+          <div class="col-xs-1 col-md-6" >               <!-- Kontajner pre zobrazovanie stavu kamery 3 -->
+              <div class="thumbnail bot-pad  alert-info" id='Stav_thm'>
+                  <h2> Aktualny pocet aut:   0 z 20 <br>  <span class="label" id='Pocet'></span></h2>     <!-- Nazov kamery a jej stitok s textovym oznacenim stavu -->
+              </div>
+          </div>
+
+          <div class="col-xs-1 col-md-6" >               <!-- Kontajner pre zobrazovanie stavu kamery 4 -->
+              <div class="thumbnail bot-pad " id='Button_thm'>
+                  <h2> Tlacidla <br>  <span class="label" id='Button'></span></h2>     <!-- Nazov kamery a jej stitok s textovym oznacenim stavu -->
+              </div>
+          </div>
+</div>
+</div>
+
+    <script src="{{ url_for('static', filename='js/jquery-3.2.1.min.js') }}"></script>    <!-- Nacitanie JavaScript suboru jQuery pre interakciu stranky z lokalneho disku -->
+    <script src="{{ url_for('static', filename='js/bootstrap.min.js') }}"></script>       <!-- Nacitanie JavaScript suboru Bootstrap pre interakciu stranky z lokalneho disku -->
+    <script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>           <!-- Nacitanie JavaScript suboru Socket.io pre komunikaciu z lokalneho disku -->
+
+    <script>                                                                    //skript pre dynamickost a komunikaciu stranky
+        $(document).ready(function () {                                         //cakanie na pripravenost stranky pre manipulaciu
+
+            var socket = io.connect();                                          //prepojenie klient-server pomocou Socket.io
+
+            socket.on('connect', function (e) {                                 //cakanie na udalost 'connect', prijojenie sa ku serveru
+                socket.emit('refresh', "User has connected - MAIN PAGE, refersh data!");    //odosielanie udalosti serveru pre zaslanie aktualneho stavu kamier pri prvom pripojeny
+                console.log('CONNECTED');
+            });
+
+                function setCamValue(status, id_frame, id_thumbnail, id_label) {  //zmena triedy kontajnera a jeho komponentov, parametre funkcie su nove data kamery, ktorej stav sa zmenil a id komponentov reprezentujuce jej stav
+                     if (status === 3) {
+                        $(id_label).text('LIVE & READY');                       //nastavenie tried pre stav LIVE + READY
+                        $(id_label).toggleClass('label-info', true);
+                        $(id_label).toggleClass('label-success', false);
+                        $(id_label).toggleClass('label-default', false);
+                        $(id_label).toggleClass('label-danger', false);
+                        $(id_thumbnail).toggleClass('alert-danger', true);
+                        $(id_thumbnail).toggleClass('alert-success', false);
+                        $(id_thumbnail).toggleClass('alert-free', false);
+                    }
+                    else if (status === 2) {
+                        $(id_label).text('LIVE');                               //nastavenie tried pre stav LIVE
+                        $(id_label).toggleClass('label-info', false);
+                        $(id_label).toggleClass('label-success', false);
+                        $(id_label).toggleClass('label-default', false);
+                        $(id_label).toggleClass('label-danger', true);
+                        $(id_thumbnail).toggleClass('alert-danger', true);
+                        $(id_thumbnail).toggleClass('alert-success', false);
+                        $(id_thumbnail).toggleClass('alert-free', false);
+                    }
+                    else if (status === 1) {
+                        $(id_label).text('READY');                              //nastavenie tried pre stav READY
+                        $(id_label).toggleClass('label-info', false);
+                        $(id_label).toggleClass('label-default', false);
+                        $(id_label).toggleClass('label-success', true);
+                        $(id_label).toggleClass('label-danger', false);
+                        $(id_thumbnail).toggleClass('alert-danger', false);
+                        $(id_thumbnail).toggleClass('alert-success', true);
+                        $(id_thumbnail).toggleClass('alert-free', false);
+                    }
+                    else if (status === 0) {
+                        $(id_label).text('FREE');                               //nastavenie tried pre stav nevyuzivania kamery video striznou
+                        $(id_label).toggleClass('label-info', false);
+                        $(id_label).toggleClass('label-success', false);
+                        $(id_label).toggleClass('label-default', true);
+                        $(id_label).toggleClass('label-danger', false);
+                        $(id_thumbnail).toggleClass('alert-danger', false);
+                        $(id_thumbnail).toggleClass('alert-success', false);
+                        $(id_thumbnail).toggleClass('alert-free', true);
+                    }
+                    else {
+                        $(id_label).text('ERROR_VALUE');                        //nastavenie tried pre chybny stav
+                        $(id_label).toggleClass('label-info', true);
+                        $(id_label).toggleClass('label-success', false);
+                        $(id_label).toggleClass('label-default', false);
+                        $(id_label).toggleClass('label-danger', false);
+                        $(id_thumbnail).toggleClass('alert-danger', false);
+                        $(id_thumbnail).toggleClass('alert-success', false);
+                        $(id_thumbnail).toggleClass('alert-free', true);
+                    }
+                };
+
+                socket.on('Teplota', function (e) {                            //cakanie na udalost 'kamera_1', zmena stavu kamery 1
+                    console.log("Teplota:", e.value, " C");
+                    $(Teplota).text('Tepota');
+                });
+
+                socket.on('Vlhkost', function (e) {                            //cakanie na udalost 'kamera_2', zmena stavu kamery 2
+                    console.log("Vlhkost:", e.value, " %");
+                    $(Teplota).text('Vlhkost');
+                });
+
+                  });
+
+    </script>
+
+
+</body>
+</html>
