@@ -71,7 +71,6 @@ def Bluetooth():
 		if (ser.inWaiting() > 0):
 			x = ser.readline()
 			print (x)
-		print("ahoj")
 		eventlet.sleep(0.1)
 
 def Button():
