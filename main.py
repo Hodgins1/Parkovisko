@@ -6,14 +6,21 @@ from flask_socketio import SocketIO				# Socket.IO - komunikacia kleint-server v
 import eventlet
 import serial
 import MPR121 as CK
+import Display_I2C as DS
 
 # Get I2C bus
 bus = smbus.SMBus(1)
 TEMP_sensor = 0x45
 
+TEMP = "n/a"
+HUM = "n/a"
+FUN = 1250
 MAX_car = 20
 ACTUAL_car = 0
 STATE = 0
+
+password = '1111'
+test_psw = ''
 
 eventlet.monkey_patch()							# inicializovanie sietovej kniznice
 app = Flask(__name__)							# vytvorenie instancie triedy pre Flask									# vytvorenie instancie triedy pre kotolu stavu kamier a obrazoviek
@@ -28,7 +35,6 @@ ser = serial.Serial(
 		timeout=1
 	)
 
-
 @socketio.on('refresh')							# cakanie pripojenie kleinta a nasledne odoslanie stavu vsetkych kamier
 def prveSpojenie1(msg):
 	print(msg)									# vypis na konzolu ze sa prihlasil novy uzivatel
@@ -37,34 +43,15 @@ def prveSpojenie1(msg):
 def index():
 	return render_template('index.html')		# generovanie HTML suboru
 
-def Temperature():								# funkcia pre kontrolu zmenu stavu kamery
+def SENSORS_REFRESH():								# funkcia pre kontrolu zmenu stavu kamery
+	global TEMP, HUM
 	while True:
 		bus.write_i2c_block_data(TEMP_sensor, 0x2C, [0x06])
-		eventlet.sleep(3)
+		eventlet.sleep(2)
 		data = bus.read_i2c_block_data(TEMP_sensor, 0x00, 6)
-		cTemp = round(((((data[0] * 256.0) + data[1]) * 175) / 65535.0) - 45,2)
-		humidity = round(100 * (data[3] * 256 + data[4]) / 65535.0,1)
-		socketio.emit('Teplota', {'value':cTemp})	#odoslanie noveho stavu kamery
-		print 'Teplota: ', cTemp, ' C' 		    # vypisanie noveho stavu kamery na konzolu
-		socketio.emit('Vlhkost', {'value': humidity})	#odoslanie noveho stavu kamery
-		print 'Vlhkost: ', humidity , '%'		# vypisanie noveho stavu kamery na konzolu
-		print '------------------------------------'
+		TEMP = round(((((data[0] * 256.0) + data[1]) * 175) / 65535.0) - 45,2)
+		HUM = round(100 * (data[3] * 256 + data[4]) / 65535.0,1)
 
-def Display():
-	print "Inicializacia displeja"
-	while True:
-		if STATE == 0:
-			print "1: PARKOVISKO"
-			print "2: Pocet aut: ", ACTUAL_car,"/",MAX_car
-
-		if STATE == 1:
-			print "1: Zadaj PIN:"
-			print "2: "
-
-		if STATE == 2:
-			print "TODO"
-
-		eventlet.sleep(0.5)
 
 def Bluetooth():
 	while True:
@@ -73,23 +60,88 @@ def Bluetooth():
 			print (x)
 		eventlet.sleep(0.1)
 
+def TEST():
+	global ACTUAL_car
+	while True:
+		ACTUAL_car = ACTUAL_car + 1
+		if ACTUAL_car == MAX_car:
+			ACTUAL_car = 0
+		eventlet.sleep(5)
+
+def WEB_REFRESH():
+	while True:
+		socketio.emit('Ventilator', {'value':FUN})
+		socketio.emit('Auta', {'act': ACTUAL_car, 'max': MAX_car})	#odoslanie noveho stavu kamery
+		socketio.emit('Teplota', {'value':TEMP})	#odoslanie noveho stavu kamery
+		socketio.emit('Vlhkost', {'value': HUM})	#odoslanie noveho stavu kamery
+		eventlet.sleep(2)
+
+def CONSOLE_REFRESH():
+	while True:
+		print 'Ventilator: ', FUN, ' RPM'
+		print 'Pocet aut: ', ACTUAL_car, '/' , MAX_car		# vypisanie noveho stavu kamery na konzolu
+		print 'Vlhkost: ', HUM , '%'		# vypisanie noveho stavu kamery na konzolu
+		print 'Teplota: ', TEMP, ' C' 		    # vypisanie noveho stavu kamery na konzolu
+		print '------------------------------------'
+		eventlet.sleep(2)
+
 def Button():
+	global STATE, test_psw,password
 	CK.setup(0x5a)
 	last_touched = CK.readData(0x5a)
 	lastTap = 0
-	pasw = ''
+
 	while True:
 		data = CK.readData(0x5a)
 		if(data != 0 and data != lastTap): #testuje sa ci bolo stlacene nieco nove
 			eventlet.sleep(0.05)
-			print(data)
-			# if (STATE == 0 and data == 8):
-			# 	STATE = 1
-			# if(STATE == 1 and data != 2048):
-			# 	if(data == 8):
-			# 		print (data)
+			if (STATE == 0 and data == 8):
+				STATE = 1
+			if(STATE == 1):
+				if(data == 1):
+					test_psw = test_psw + "3"
+				elif(data == 2):
+					test_psw = test_psw + "6"
+				elif(data == 4):
+					test_psw = test_psw + "9"
+				elif(data == 8):
+					print (test_psw)
+				elif(data == 16):
+					test_psw = test_psw + "2"
+				elif(data == 32):
+					test_psw = test_psw + "5"
+				elif(data == 64):
+					test_psw = test_psw + "8"
+				elif(data == 128):
+					test_psw = test_psw + "0"
+				elif(data == 256):
+					test_psw = test_psw + "1"
+				elif(data == 512):
+					test_psw = test_psw + "4"
+				elif(data == 1024):
+					test_psw = test_psw + "7"
+				elif(data == 2048):
+					if len(test_psw) == 0 :
+						STATE = 0
+					else:
+						test_psw = test_psw[:-1]
+
 			lastTap = data
 		eventlet.sleep(0.05)
+def Display():
+	DS.lcd_init()
+	global test_psw
+	while True:
+		if STATE == 0:
+			DS.lcd_string( "PARKOVISKO",DS.LCD_LINE_1)
+			DS.lcd_string( "Pocet aut: " +str(ACTUAL_car) + "/" + str(MAX_car),DS.LCD_LINE_2)
+		if STATE == 1:
+			DS.lcd_string( "Lokalny vstup",DS.LCD_LINE_1)
+			DS.lcd_string( "PIN:" +  test_psw,DS.LCD_LINE_2)
+		if STATE == 2:
+			print "TODO"
+
+		eventlet.sleep(0.2)
 
 
 
@@ -97,7 +149,10 @@ def Button():
 if __name__ == "__main__":
 	print "Press Ctrl C to end"
 	eventlet.spawn(Button)
-	#eventlet.spawn(Bluetooth)
-	#eventlet.spawn(Display)
-	eventlet.spawn(Temperature)					# vytvorenie vlakna pre kontolu stavu kamery
+	eventlet.spawn(SENSORS_REFRESH)
+	eventlet.spawn(TEST)
+	eventlet.spawn(Display)
+	eventlet.spawn(WEB_REFRESH)
+	eventlet.spawn(CONSOLE_REFRESH)
+					# vytvorenie vlakna pre kontolu stavu kamery
 	socketio.run(app, host='0.0.0.0', debug=False) # start weboheho servera

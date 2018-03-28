@@ -73,24 +73,24 @@ def lcd_string(message,line):
   for i in range(LCD_WIDTH):
     lcd_byte(ord(message[i]),LCD_CHR)
 
-
-def main():
-    lcd_init()
-
-    while True:
-        lcd_string("GARAZ",LCD_LINE_1)
-        lcd_string("GARAZ yomas",LCD_LINE_2)
-        print "tlac"
-        time.sleep(1)
-        lcd_string("skusk",LCD_LINE_2)
-        print "tlac"
-        time.sleep(1)
-
-
-if __name__ == '__main__':
-  try:
-    main()
-  except KeyboardInterrupt:
-    pass
-  # finally:
-  #   lcd_byte(0x01, LCD_CMD)
+#
+# def main():
+#     lcd_init()
+#
+#     while True:
+#         lcd_string("GARAZ",LCD_LINE_1)
+#         lcd_string("GARAZ yomas",LCD_LINE_2)
+#         print "tlac"
+#         time.sleep(1)
+#         lcd_string("skusk",LCD_LINE_2)
+#         print "tlac"
+#         time.sleep(1)
+#
+#
+# if __name__ == '__main__':
+#   try:
+#     main()
+#   except KeyboardInterrupt:
+#     pass
+#   # finally:
+#   #   lcd_byte(0x01, LCD_CMD)
