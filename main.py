@@ -7,6 +7,7 @@ import eventlet
 import serial
 import MPR121 as CK
 import Display_I2C as DS
+import RPi.GPIO as GPIO
 
 # Get I2C bus
 bus = smbus.SMBus(1)
@@ -25,6 +26,13 @@ test_psw = ''
 eventlet.monkey_patch()							# inicializovanie sietovej kniznice
 app = Flask(__name__)							# vytvorenie instancie triedy pre Flask									# vytvorenie instancie triedy pre kotolu stavu kamier a obrazoviek
 socketio = SocketIO(app)						# vytvorenie instancie triedy SocketIO
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+RAMPA = 21
+ODCHOD = 20
+GPIO.setup(RAMPA, GPIO.OUT, initial=GPIO.LOW)
+GPIO.setup(ODCHOD, GPIO.IN)
 
 ser = serial.Serial(
 		port='/dev/ttyAMA0',
@@ -86,6 +94,14 @@ def CONSOLE_REFRESH():
 		eventlet.sleep(2)
 
 def Button():
+	global ACTUAL_car
+	while True:
+		if (GPIO.input(ODCHOD))==0 and ACTUAL_car !=0:
+			ACTUAL_car = ACTUAL_car - 1
+
+		eventlet.sleep(0.5)
+
+def TouchPad():
 	global STATE, test_psw,password
 	CK.setup(0x5a)
 	last_touched = CK.readData(0x5a)
@@ -97,7 +113,7 @@ def Button():
 			eventlet.sleep(0.05)
 			if (STATE == 0 and data == 8):
 				STATE = 1
-			if(STATE == 1):
+			elif(STATE == 1):
 				if(data == 1):
 					test_psw = test_psw + "3"
 				elif(data == 2):
@@ -105,7 +121,7 @@ def Button():
 				elif(data == 4):
 					test_psw = test_psw + "9"
 				elif(data == 8):
-					print (test_psw)
+					STATE = 2
 				elif(data == 16):
 					test_psw = test_psw + "2"
 				elif(data == 32):
@@ -125,21 +141,41 @@ def Button():
 						STATE = 0
 					else:
 						test_psw = test_psw[:-1]
-
-			lastTap = data
+		lastTap = data
 		eventlet.sleep(0.05)
+
 def Display():
 	DS.lcd_init()
-	global test_psw
+	global test_psw, STATE, ACTUAL_car
+	PAR = 0
 	while True:
 		if STATE == 0:
-			DS.lcd_string( "PARKOVISKO",DS.LCD_LINE_1)
+			DS.lcd_string( "   PARKOVISKO",DS.LCD_LINE_1)
 			DS.lcd_string( "Pocet aut: " +str(ACTUAL_car) + "/" + str(MAX_car),DS.LCD_LINE_2)
 		if STATE == 1:
 			DS.lcd_string( "Lokalny vstup",DS.LCD_LINE_1)
 			DS.lcd_string( "PIN:" +  test_psw,DS.LCD_LINE_2)
 		if STATE == 2:
-			print "TODO"
+			print test_psw
+			if test_psw == password:
+				if ACTUAL_car == MAX_car:
+					DS.lcd_string( "PLNE  PARKOVISKO",DS.LCD_LINE_1)
+					DS.lcd_string( " Pridte  neskor ",DS.LCD_LINE_2)
+				else:
+					GPIO.output(21, GPIO.HIGH)
+					DS.lcd_string( "  Heslo prijate ",DS.LCD_LINE_1)
+					DS.lcd_string( "    Vitajte     ",DS.LCD_LINE_2)
+					ACTUAL_car = ACTUAL_car + 1
+			else:
+				DS.lcd_string( "   ZAMIETNUTE   ",DS.LCD_LINE_1)
+				DS.lcd_string( " zadajte  znova ",DS.LCD_LINE_2)
+			eventlet.sleep(2)
+			GPIO.output(21, GPIO.LOW)
+			test_psw = ''
+			STATE = 0
+
+		if STATE == 9:
+			DS.lcd_string( "Neplatny znak !!",DS.LCD_LINE_2)
 
 		eventlet.sleep(0.2)
 
@@ -148,9 +184,10 @@ def Display():
 
 if __name__ == "__main__":
 	print "Press Ctrl C to end"
-	eventlet.spawn(Button)
+	eventlet.spawn(TouchPad)
 	eventlet.spawn(SENSORS_REFRESH)
-	eventlet.spawn(TEST)
+	eventlet.spawn(Button)
+	# eventlet.spawn(TEST)
 	eventlet.spawn(Display)
 	eventlet.spawn(WEB_REFRESH)
 	eventlet.spawn(CONSOLE_REFRESH)
