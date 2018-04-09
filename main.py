@@ -19,6 +19,8 @@ FUN = 1250
 MAX_car = 20
 ACTUAL_car = 0
 STATE = 0
+EM_OPEN = 0
+EM_CLOSE = 0
 
 password = '1111'
 test_psw = ''
@@ -45,7 +47,24 @@ ser = serial.Serial(
 
 @socketio.on('refresh')							# cakanie pripojenie kleinta a nasledne odoslanie stavu vsetkych kamier
 def prveSpojenie1(msg):
-	print(msg)									# vypis na konzolu ze sa prihlasil novy uzivatel
+	print(msg)
+	print '------------------------------------'									# vypis na konzolu ze sa prihlasil novy uzivatel
+
+@socketio.on('BUTTON')							# cakanie pripojenie kleinta a nasledne odoslanie stavu vsetkych kamier
+def EM_BUTTON(msg):
+	global EM_OPEN,EM_CLOSE
+	if(msg == '1'):
+		if(EM_OPEN):
+			EM_OPEN = 0
+		else:
+			EM_OPEN = 1
+		socketio.emit('EM_OPEN', {'value':EM_OPEN})
+	if(msg == '2'):
+		if(EM_CLOSE):
+			EM_CLOSE = 0
+		else:
+			EM_CLOSE = 1
+		socketio.emit('EM_CLOSE', {'value':EM_CLOSE})
 
 @app.route("/")									# previazanie URL adresy s funkciou
 def index():
@@ -102,14 +121,14 @@ def Button():
 		eventlet.sleep(0.5)
 
 def TouchPad():
-	global STATE, test_psw,password
+	global STATE, test_psw,password,EM_OPEN,EM_CLOSE
 	CK.setup(0x5a)
 	last_touched = CK.readData(0x5a)
 	lastTap = 0
 
 	while True:
 		data = CK.readData(0x5a)
-		if(data != 0 and data != lastTap): #testuje sa ci bolo stlacene nieco nove
+		if(data != 0 and data != lastTap and EM_OPEN !=1 and EM_CLOSE !=1): #testuje sa ci bolo stlacene nieco nove
 			eventlet.sleep(0.05)
 			if (STATE == 0 and data == 8):
 				STATE = 1
@@ -146,36 +165,42 @@ def TouchPad():
 
 def Display():
 	DS.lcd_init()
-	global test_psw, STATE, ACTUAL_car
+	global test_psw, STATE, ACTUAL_car, EM_OPEN, EM_CLOSE
 	PAR = 0
 	while True:
-		if STATE == 0:
-			DS.lcd_string( "   PARKOVISKO",DS.LCD_LINE_1)
-			DS.lcd_string( "Pocet aut: " +str(ACTUAL_car) + "/" + str(MAX_car),DS.LCD_LINE_2)
-		if STATE == 1:
-			DS.lcd_string( "Lokalny vstup",DS.LCD_LINE_1)
-			DS.lcd_string( "PIN:" +  test_psw,DS.LCD_LINE_2)
-		if STATE == 2:
-			print test_psw
-			if test_psw == password:
-				if ACTUAL_car == MAX_car:
-					DS.lcd_string( "PLNE  PARKOVISKO",DS.LCD_LINE_1)
-					DS.lcd_string( " Pridte  neskor ",DS.LCD_LINE_2)
-				else:
-					GPIO.output(21, GPIO.HIGH)
-					DS.lcd_string( "  Heslo prijate ",DS.LCD_LINE_1)
-					DS.lcd_string( "    Vitajte     ",DS.LCD_LINE_2)
-					ACTUAL_car = ACTUAL_car + 1
-			else:
-				DS.lcd_string( "   ZAMIETNUTE   ",DS.LCD_LINE_1)
-				DS.lcd_string( " zadajte  znova ",DS.LCD_LINE_2)
-			eventlet.sleep(2)
+		if EM_OPEN !=1 and EM_CLOSE !=1:
 			GPIO.output(21, GPIO.LOW)
-			test_psw = ''
-			STATE = 0
-
-		if STATE == 9:
-			DS.lcd_string( "Neplatny znak !!",DS.LCD_LINE_2)
+			if STATE == 0:
+				DS.lcd_string( "   PARKOVISKO",DS.LCD_LINE_1)
+				DS.lcd_string( "Pocet aut: " +str(ACTUAL_car) + "/" + str(MAX_car),DS.LCD_LINE_2)
+			if STATE == 1:
+				DS.lcd_string( "Lokalny vstup",DS.LCD_LINE_1)
+				DS.lcd_string( "PIN:" +  test_psw,DS.LCD_LINE_2)
+			if STATE == 2:
+				if test_psw == password:
+					if ACTUAL_car == MAX_car:
+						DS.lcd_string( "PLNE  PARKOVISKO",DS.LCD_LINE_1)
+						DS.lcd_string( " Pridte  neskor ",DS.LCD_LINE_2)
+					else:
+						GPIO.output(21, GPIO.HIGH)
+						DS.lcd_string( "  Heslo prijate ",DS.LCD_LINE_1)
+						DS.lcd_string( "    Vitajte     ",DS.LCD_LINE_2)
+						ACTUAL_car = ACTUAL_car + 1
+				else:
+					DS.lcd_string( "   ZAMIETNUTE   ",DS.LCD_LINE_1)
+					DS.lcd_string( " zadajte  znova ",DS.LCD_LINE_2)
+				eventlet.sleep(2)
+				GPIO.output(21, GPIO.LOW)
+				test_psw = ''
+				STATE = 0
+		else:
+			if(EM_OPEN):
+				DS.lcd_string( "   PARKOVISKO   ",DS.LCD_LINE_1)
+				DS.lcd_string( "trvalo  otvorene",DS.LCD_LINE_2)
+				GPIO.output(21, GPIO.HIGH)
+			if(EM_CLOSE):
+				DS.lcd_string( "   PARKOVISKO   ",DS.LCD_LINE_1)
+				DS.lcd_string( "trvalo zatvorene",DS.LCD_LINE_2)
 
 		eventlet.sleep(0.2)
 
@@ -191,5 +216,5 @@ if __name__ == "__main__":
 	eventlet.spawn(Display)
 	eventlet.spawn(WEB_REFRESH)
 	eventlet.spawn(CONSOLE_REFRESH)
-					# vytvorenie vlakna pre kontolu stavu kamery
+
 	socketio.run(app, host='0.0.0.0', debug=False) # start weboheho servera

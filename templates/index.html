@@ -24,32 +24,32 @@
 
       <div class="row">
           <div class="col-md-12" >               <!-- Kontajner pre zobrazovanie stavu kamery 1 -->
-              <div class="thumbnail bot-pad alert-success" id='Teplota_thm'>
-
+              <div class="thumbnail  alert-success" id='Teplota_thm'>
                   <h1> Teplota:   n/a C <br>  <span class="label" id='Teplota'></span> </h1>     <!-- Nazov kamery a jej stitok s textovym oznacenim stavu -->
               </div>
           </div>
           <div class="col-md-12" >               <!-- Kontajner pre zobrazovanie stavu kamery 1 -->
-              <div class="thumbnail bot-pad alert-default" id='Vlhkost_thm'>
+              <div class="thumbnail  alert-default" id='Vlhkost_thm'>
                   <h1> Vlhkost:   n/a C <br>  <span class="label" id='Vlhkost'></span> </h1>     <!-- Nazov kamery a jej stitok s textovym oznacenim stavu -->
               </div>
           </div>
 
           <div class="col-md-12">               <!-- Kontajner pre zobrazovanie stavu kamery 2 -->
-              <div class="thumbnail bot-pad alert-danger"  id='Ventilator_thm'>
+              <div class="thumbnail  alert-danger"  id='Ventilator_thm'>
                   <h1> Ventilator:   rpm <br>  <span class="label" id='Ventilator'></span></h1>     <!-- Nazov kamery a jej stitok s textovym oznacenim stavu -->
               </div>
           </div>
 
           <div class="col-md-12" >               <!-- Kontajner pre zobrazovanie stavu kamery 3 -->
-              <div class="thumbnail bot-pad  alert-info" id='Auta_thm'>
+              <div class="thumbnail   alert-info" id='Auta_thm'>
                   <h1> Aktualny pocet aut:   0 z 20 <br>  <span class="label" id='Auta'></span></h1>     <!-- Nazov kamery a jej stitok s textovym oznacenim stavu -->
               </div>
           </div>
 
           <div class="col-md-12" >               <!-- Kontajner pre zobrazovanie stavu kamery 4 -->
-              <div class="thumbnail bot-pad " id='Button_thm'>
-                  <h1> Tlacidla <br>  <span class="label" id='Button'></span></h1>     <!-- Nazov kamery a jej stitok s textovym oznacenim stavu -->
+              <div class="thumbnail">
+                  <button type="button"  id='EM_OPEN' class="btn btn-warning btn-block">NUDZOVE OVORENIE</button>
+                  <button type="button"  id='EM_CLOSE' class="btn btn-danger btn-block">NUDZOVE ZATVORENIE</button>
               </div>
           </div>
 </div>
@@ -88,7 +88,27 @@
                     $(Auta_thm).text(((('Aktualny pocet aut: ').concat(e.act)).concat('/')).concat(e.max));
                 });
 
+                socket.on('EM_OPEN', function (e) {                            //cakanie na udalost 'kamera_2', zmena stavu kamery 2
+                    console.log("EM_OPEN: ", e.value);
+                    if(e.value === 1){
+                      $("#EM_OPEN").toggleClass('active', true);
+                    }else {
+                      $("#EM_OPEN").toggleClass('active', false);
+                    }
+                });
+
+                $('#EM_CLOSE').on('click', function () {                     //cakanie na kliknutie na tlacislo pre odoslanie spravy
+                    console.log("BUTTON - EMERGENCY CLOSE");
+                    socket.emit('BUTTON', "2");
+                });
+                $('#EM_OPEN').on('click', function () {                     //cakanie na kliknutie na tlacislo pre odoslanie spravy
+                    console.log("BUTTON - EMERGENCY OPEN");
+                    socket.emit('BUTTON', '1');
+                });
+
                   });
+
+
 
     </script>
 
